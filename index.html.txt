@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Liquid Chrome Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&family=Space+Grotesk:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+margin:0;
+background:#000;
+color:white;
+font-family:'Space Grotesk',sans-serif;
+overflow-x:hidden;
+}
+
+/* ---------- WEBGL CANVAS ---------- */
+
+#bg{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+z-index:-1;
+}
+
+/* ---------- TITLE ---------- */
+
+.title{
+
+font-family:'Syne',sans-serif;
+font-size:120px;
+text-align:center;
+margin-top:60px;
+letter-spacing:-0.05em;
+
+background:linear-gradient(
+90deg,
+#ffffff,
+#d9e6ff,
+#8fb3ff,
+#ffffff
+);
+
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+
+filter:drop-shadow(0 0 25px #8fb3ff);
+
+}
+
+/* ---------- GLASS UI ---------- */
+
+.glass{
+
+background:rgba(255,255,255,0.05);
+backdrop-filter:blur(25px);
+border:1px solid rgba(255,255,255,0.08);
+border-radius:16px;
+
+}
+
+/* ---------- TABS ---------- */
+
+.tabs{
+display:flex;
+overflow-x:auto;
+gap:10px;
+padding:20px;
+}
+
+.tab{
+padding:10px 16px;
+border-radius:10px;
+background:rgba(255,255,255,0.08);
+cursor:pointer;
+}
+
+.tab.active{
+background:white;
+color:black;
+}
+
+/* ---------- DASHBOARD ---------- */
+
+.dashboard{
+
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:20px;
+padding:20px;
+
+}
+
+@media(max-width:900px){
+
+.dashboard{
+grid-template-columns:1fr;
+}
+
+}
+
+/* ---------- VIDEO ---------- */
+
+.video{
+position:relative;
+padding-top:56.25%;
+}
+
+.video iframe{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+border:0;
+}
+
+/* ---------- CODE ---------- */
+
+.code{
+
+position:relative;
+padding:20px;
+font-family:monospace;
+white-space:pre;
+overflow:auto;
+
+}
+
+.copy{
+position:absolute;
+top:10px;
+right:10px;
+padding:6px 12px;
+cursor:pointer;
+}
+
+</style>
+</head>
+
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<div class="title">
+LIQUID CHROME
+</div>
+
+<div class="tabs glass" id="tabs"></div>
+
+<div class="dashboard">
+
+<div class="video glass">
+<iframe id="videoFrame" src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>
+</div>
+
+<div class="code glass">
+
+<button class="copy" id="copy">Copiar</button>
+<code id="code"></code>
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+
+<script>
+
+/* ---------- WEBGL LIQUID CHROME ---------- */
+
+const canvas=document.getElementById("bg")
+
+const scene=new THREE.Scene()
+
+const camera=new THREE.Camera()
+
+const renderer=new THREE.WebGLRenderer({canvas})
+
+renderer.setSize(window.innerWidth,window.innerHeight)
+
+const geometry=new THREE.PlaneGeometry(2,2)
+
+const material=new THREE.ShaderMaterial({
+
+uniforms:{
+time:{value:0},
+resolution:{value:new THREE.Vector2(window.innerWidth,window.innerHeight)}
+},
+
+fragmentShader:`
+
+uniform float time;
+uniform vec2 resolution;
+
+float noise(vec2 p){
+return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);
+}
+
+void main(){
+
+vec2 uv=gl_FragCoord.xy/resolution.xy;
+
+float n=sin(uv.x*10.0+time)*0.1+
+sin(uv.y*15.0+time)*0.1;
+
+vec3 chrome=vec3(0.8+sin(n*10.0)*0.2);
+
+vec3 color=mix(
+vec3(0.2,0.3,0.5),
+chrome,
+smoothstep(0.2,0.8,n+0.5)
+);
+
+gl_FragColor=vec4(color,1.0);
+
+}
+
+`
+
+})
+
+const mesh=new THREE.Mesh(geometry,material)
+
+scene.add(mesh)
+
+function animate(){
+
+material.uniforms.time.value+=0.02
+
+renderer.render(scene,camera)
+
+requestAnimationFrame(animate)
+
+}
+
+animate()
+
+/* ---------- TABS ---------- */
+
+const videos=Array(30).fill("dQw4w9WgXcQ")
+
+const codes=Array.from({length:30},(_,i)=>`
+
+// recurso ${i+1}
+
+function example(){
+console.log("liquid chrome")
+}
+
+example()
+
+`)
+
+const tabs=document.getElementById("tabs")
+
+for(let i=0;i<30;i++){
+
+const tab=document.createElement("div")
+
+tab.className="tab"
+
+tab.textContent=i+1
+
+if(i===0)tab.classList.add("active")
+
+tab.onclick=()=>{
+
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"))
+
+tab.classList.add("active")
+
+document.getElementById("videoFrame").src=
+"https://www.youtube.com/embed/"+videos[i]
+
+document.getElementById("code").textContent=codes[i]
+
+}
+
+tabs.appendChild(tab)
+
+}
+
+document.getElementById("code").textContent=codes[0]
+
+/* ---------- COPY ---------- */
+
+document.getElementById("copy").onclick=()=>{
+
+navigator.clipboard.writeText(
+document.getElementById("code").textContent
+)
+
+}
+
+</script>
+
+</body>
+</html>
